@@ -1,0 +1,381 @@
+/* =====================================================================
+ * book.css — 番号・参照・目次・柱の規約
+ *
+ * 体裁 (フォント・余白・マージンボックスの枠組み) は @vivliostyle/theme-base に
+ * 任せ、このファイルは「番号をどこから出すか」だけを決める。層を混在させない。
+ *
+ * 土台になる仕組みは3つ。
+ *
+ *   1. 文書カウンター (counter-reset / counter-increment) は
+ *      ファイル境界でリセットされる → 章の中の番号に使う
+ *   2. ページ制御カウンター (@page の中に書いた counter-increment) は
+ *      ファイルをまたいで連続する → 部・章・付録の番号に使う
+ *   3. @page :nth(1) は各ファイルの1ページ目、
+ *      @page 名前:nth(1 of 名前) は各ページグループの先頭にマッチする
+ *      (@page :first は出版物全体の最初の1ページだけなので使えない)
+ *
+ * 2 のせいで「ファイルをまたいで、要素ごとに1つ進む番号」は作れない。
+ * 章より上と章より下で番号の出所を分け、その境界をファイル分割の境界に
+ * 一致させる ＝ 1ファイル1章 が、この実装の設計判断そのものである。
+ * ===================================================================== */
+
+/* ---------------------------------------------------------------------
+ * 1. 判型とページ
+ * ------------------------------------------------------------------- */
+:root {
+  --vs-font-family: 'Noto Serif CJK JP', 'Hiragino Mincho ProN', serif;
+  --vs-font-size: 9.5pt;
+  --vs-line-height: 1.75;
+  --vs-page--margin-top: 20mm;
+  --vs-page--margin-bottom: 22mm;
+  --vs-page--margin-inner: 22mm;
+  --vs-page--margin-outer: 18mm;
+}
+
+/* 文書の種別ごとに名前付きページを与える。
+   VFM の frontmatter に書いた class: は <html> と <body> の両方に付く。
+
+   theme-base も同じ手を使っていて、chapter / part / preface / appendix /
+   colophon といった class を自分の名前付きページ (chapter-document など) に
+   割り当てている。しかもセレクタが `html.chapter, body.chapter` なので、
+   こちらが body だけを上書きしても <html> 側の指定が残って競合する。
+   自分の名前を使うなら html と body の両方を上書きすること。 */
+html.preface,    body.preface    { page: front; }
+html.part,       body.part       { page: part; }
+html.chapter,    body.chapter    { page: chap; }
+html.appendix,   body.appendix   { page: app; }
+html.backmatter, body.backmatter { page: back; }
+html.colophon,   body.colophon   { page: colo; }
+/* 表紙と目次は CLI が生成するので class を付けられない。役割属性で拾う。 */
+body:has([role='doc-toc'])   { page: front; }
+body:has([role='doc-cover']) { page: cover; }
+
+/* ---------------------------------------------------------------------
+ * 2. ページ番号 — 前付けと本文で別の系列にする
+ *
+ * page カウンターを振り直す方法もあるが、振り直しを置いた文書が1ページしか
+ * ないと次の文書に引き継がれない (Core 2.45.0)。
+ * 系列ごとに別のページ制御カウンターを立てれば、この罠に引っかからない。
+ * 前付けと本文はそもそも別の系列なので、こう書くほうが素直でもある。
+ * ------------------------------------------------------------------- */
+@page front {
+  counter-increment: frontpage;
+  --vs-page--mbox-content-bottom-center: counter(frontpage, lower-roman);
+}
+@page part, chap, app, back, colo {
+  counter-increment: bodypage;
+  --vs-page--mbox-content-bottom-center: counter(bodypage);
+}
+@page cover, colo {
+  --vs-page--mbox-content-bottom-center: none;
+}
+
+/* ---------------------------------------------------------------------
+ * 3. 部・章・付録 — ページ制御カウンター (ファイルをまたぐ)
+ * ------------------------------------------------------------------- */
+@page part:nth(1 of part) { counter-increment: part bodypage; }
+@page chap:nth(1 of chap) { counter-increment: chapter bodypage; }
+@page app:nth(1 of app)   { counter-increment: appendix bodypage; }
+/* 部ごとに章番号を振り直したいなら、上の part の行に counter-reset: chapter; を足す。
+   その1行だけで「部をまたいで通し」と「部ごとに振り直す」が切り替わる。 */
+
+body.part    section.level1 > h1::before { content: '第' counter(part, upper-roman) '部'; }
+body.chapter section.level1 > h1::before { content: '第' counter(chapter) '章'; }
+body.appendix section.level1 > h1::before { content: '付録' counter(appendix, upper-alpha); }
+body.part    section.level1 > h1::before,
+body.chapter section.level1 > h1::before,
+body.appendix section.level1 > h1::before { margin-inline-end: 1ch; }
+
+/* ---------------------------------------------------------------------
+ * 4. 節 — 入れ子の文書カウンター (章の中で閉じる)
+ *
+ * theme-base が vs-counter-sections という同じ仕組みを既に持っているので、
+ * 自前のカウンターを立てずにそちらへ寄せる。同じ番号を二重に持つと、
+ * どちらが効いているのか分からなくなる。
+ *
+ * theme-base がやっているのは、要するに次の2行である。テーマを使わないなら
+ * 自分でこう書く。
+ *
+ *   section:has(> h2:first-child) { counter-increment: sec; }
+ *   section > :is(h1,h2,h3,h4,h5,h6):first-child + * { counter-reset: sec; }
+ *
+ * 要点は、リセットを見出しではなく「見出しの次の要素」に置くこと。
+ * 見出しの位置ではまだ親の階層なので、見出しには親までの番号が出る。
+ * 見出し自身にリセットを書くと 1.1.0 のように余分な 0 が出る。
+ *
+ * ここで上書きするのは値だけで、増やす・リセットする規則には触らない。
+ * marker-display の既定は none なので、出したいなら明示的に戻す。
+ * ------------------------------------------------------------------- */
+:root {
+  --vs-section--marker-display: inline;
+  /* 既定では番号を出さない。h1 の ::before も同じ変数を見ているので、
+     ここを空にしておかないと前付け・後付けの見出しに裸の番号が出る。 */
+  --vs-section--marker-content: none;
+}
+/* counters() は「いま生きているインスタンスを外側から全部つないで出す」関数で、
+   桁数は「それまでに通過した counter-reset の数」に等しい。
+   counter-reset は値を 0 にするのではなく、新しいインスタンスを1つ作るからである
+   (有効範囲は、その要素と子孫と、後ろの兄弟とその子孫)。
+
+   theme-base は入れ物を2つ作る。
+     1. body のリセット                         → #1  (basic.css)
+     2. section > h1:first-child + * のリセット → #2  ← 見出しの次の要素 (section.css)
+   h2 の節が増やすのは内側の #2 なので、h2 の位置で counters() は #1.#2 の2桁になる。
+   #1 は「このファイルに h1 がいくつあるか」の数えで、1ファイル1章なら常に 1。
+   そこへ章番号を自分で足すと 1.1.1 と3桁になる。これが余分な階層。
+
+   ではなぜ #1 を章番号として使わないのか。vs-counter-sections は普通の文書
+   カウンターで、ファイル境界でリセットされる (3節の 1 と 2 の違い)。
+   1ファイル1章では、どのファイルでも h1 の階層は 1 にしかならず、
+   構造的に章を数えられない。章番号はページ制御カウンターでしか作れず、
+   そちらは要素ではなくページを数える別の仕組みなので、1つにまとめる道がない。
+   だから章番号は別に立てて前に足し、重なる h1 の階層は無効にする。
+
+   下の2行は、theme-base の宣言を none で上書きするもの。
+   none は counter-increment / counter-reset の初期値で、
+   「何も増やさない」「新しいインスタンスを作らない」を意味する。
+
+   片方ずつ外して実測した結果:
+     両方を上書き        1.1     入れ物は #1 だけ。h2 の節が #1 を 1,2,… と増やす
+     reset だけ上書き    1.2     1桁になるが、h1 の節が #1 を 1 消費するので h2 が 2 から
+     increment だけ      1.0.1   #2 が残るので2桁のまま。#1 は増えないので 0
+     どちらも上書きしない 1.1.1  2桁 + 章番号
+
+   桁を減らすのが reset の上書き、その1桁を h1 に使わせないのが increment の上書きで、
+   役割が違うので両方が必要である。 */
+section:has(> h1:first-child) { counter-increment: none; }
+section > h1:first-child + *  { counter-reset: none; }
+body.chapter {
+  --vs-section--marker-content: counter(chapter) '.' counters(vs-counter-sections, '.');
+}
+body.appendix {
+  --vs-section--marker-content: counter(appendix, upper-alpha) '.' counters(vs-counter-sections, '.');
+}
+
+/* ---------------------------------------------------------------------
+ * 5. 章の中の番号 — 文書カウンター
+ *
+ * 1ファイル1章なので、ファイル境界のリセットがそのまま
+ * 「章ごとにリセット」になる。制約が要求と一致している場所。
+ *
+ * id は「counter-increment を持つ要素そのもの」に置くこと。
+ * 図の id を <figure> に付けて counter-increment が <figcaption> にあると、
+ * target-counter() は figure の位置の値 (まだ増える前) を返し、番号が1つずれる。
+ * VFM 側は assignIdToFigcaption: true で figcaption に付けさせている。
+ * ------------------------------------------------------------------- */
+/* counter-reset を書かないカウンターは、増やす要素ごとに「その要素と後ろの
+   兄弟」だけを範囲とする別物として作られる (CSS 2.1 12.4.1)。兄弟同士なら
+   偶然うまくいくが、節をまたいだ時点で番号が 1 に戻る。**必ず明示的に書く。**
+
+   theme-base を使うときは body { counter-reset: … } を直接書いてはいけない。
+   同じセレクタで上書きすると theme-base 側の vs-counter-* のリセットが
+   全部消える。用意されている変数に足す。 */
+:root { --vs-document-root-counter-reset: thmlike eq; }
+
+.thm, .lem, .prop, .cor, .dfn { counter-increment: thmlike; }
+.nonum { counter-increment: none; }
+/* 図の番号は theme-base の vs-counter-fig に寄せる。theme-base は
+   figure:is(.fig, :has(> img/picture)) で増やしていて、VFM が出す
+   <figure><img><figcaption> がそのまま当たる。自前で立てると二重になる。
+
+   増やしているのは <figure> なので、その子孫である <figcaption> の位置では
+   もう増えたあとになる。だから id を figcaption に付けても番号はずれない
+   (assignIdToFigcaption: true)。figcaption に付ける理由は target-text() の側で、
+   <figure> を指すと画像の alt や表の中身まで混ざるため。 */
+.eq { counter-increment: eq; }
+
+/* 見出しの区切りは content の中の空白ではなく margin で作る。
+   target-text(url, before) は ::before を丸ごと取り出すので、
+   空白文字で区切ると参照側にもそれが付いてくる。 */
+.thm::before, .lem::before, .prop::before, .cor::before, .dfn::before,
+.rem::before, .nonum::before { font-weight: bold; margin-inline-end: 1ch; }
+
+body.chapter  .thm::before  { content: '定理 ' counter(chapter) '.' counter(thmlike); }
+body.chapter  .lem::before  { content: '補題 ' counter(chapter) '.' counter(thmlike); }
+body.chapter  .prop::before { content: '命題 ' counter(chapter) '.' counter(thmlike); }
+body.chapter  .cor::before  { content: '系 '   counter(chapter) '.' counter(thmlike); }
+body.chapter  .dfn::before  { content: '定義 ' counter(chapter) '.' counter(thmlike); }
+/* 番号なしの定理。body.chapter .thm::before より詳細度を上げないと勝てない。 */
+.rem::before { content: '注意'; }
+body.chapter .thm.nonum::before { content: '定理'; }
+/* 名前は番号ではないので DOM 側に置き、attr() で読む */
+body.chapter .thm[data-name]::before {
+  content: '定理 ' counter(chapter) '.' counter(thmlike) ' (' attr(data-name) ')';
+}
+
+body.chapter  figcaption::before { content: '図 ' counter(chapter) '.' counter(vs-counter-fig); }
+body.appendix figcaption::before { content: '図 ' counter(appendix, upper-alpha) '.' counter(vs-counter-fig); }
+figcaption::before { margin-inline-end: 1ch; font-weight: bold; }
+
+body.chapter .eq::after { content: '(' counter(chapter) '.' counter(eq) ')'; }
+
+/* ---------------------------------------------------------------------
+ * 6. 相互参照
+ *
+ * ファイルをまたいでも、前方参照でも、書き方は変わらない。
+ * 480ページ・7584個の参照を全数照合して食い違いは 0 だった。
+ * ------------------------------------------------------------------- */
+a[class^='ref-'] { text-decoration: none; color: inherit; }
+a.ref-ch::before   { content: '第' target-counter(attr(href url), chapter) '章'; }
+a.ref-app::before  { content: '付録' target-counter(attr(href url), appendix, upper-alpha); }
+a.ref-part::before { content: '第' target-counter(attr(href url), part, upper-roman) '部'; }
+a.ref-sec::before  { content: target-counter(attr(href url), chapter) '.'
+                              target-counters(attr(href url), vs-counter-sections, '.') '節'; }
+a.ref-fig::before  { content: '図 ' target-counter(attr(href url), chapter) '.'
+                                    target-counter(attr(href url), vs-counter-fig); }
+a.ref-eq::before   { content: '(' target-counter(attr(href url), chapter) '.'
+                                  target-counter(attr(href url), eq) ')'; }
+a.ref-page::before { content: target-counter(attr(href url), bodypage) 'ページ'; }
+a.ref-title::before { content: '「' target-text(attr(href url)) '」'; }
+/* 参照先の ::before を丸ごと取り出す。種類名も番号も名前も自動で付く。
+   定理・補題・系が番号系列を共有していても、参照側で種類を書き分けずに済む。 */
+a.ref-thm::before  { content: target-text(attr(href url), before); }
+/* 名前を持ち込みたくないときは、id の接頭辞から種類名を出して番号だけ参照する */
+a.ref-thmnum[href*='#thm-']::before {
+  content: '定理 ' target-counter(attr(href url), chapter) '.'
+                   target-counter(attr(href url), thmlike);
+}
+/* 文献は番号の源が1ファイルに収まるので、そのまま取り出せる */
+a.ref-cite::before { content: '[' target-counter(attr(href url), vs-counter-cite) ']'; }
+
+/* 素のブラウザには target-counter() が無い。Vivliostyle は print メディアの
+   スタイルを使うので、@media screen は素のブラウザ向けの逃げ道になる。 */
+@media screen {
+  a[class^='ref-']::before { content: '[?]'; }
+}
+
+/* ---------------------------------------------------------------------
+ * 6.5. 脚注
+ *
+ * 脚注番号は「どのカウンターで採番するか」でリセットの単位が変わる。
+ *   自前のカウンター  (theme-base の既定)      → ページごとに戻る
+ *   内蔵の footnote カウンター                  → ファイルごとに戻る
+ *   内蔵 + ビルド時のオフセット注入             → 本全体で通し
+ * float: footnote の要素は本文の流れから外れるので、そこに置いた
+ * counter-increment は本文側の文書カウンターを進めない。それが1つ目の理由。
+ *
+ * ここでは1ファイル1章なので、内蔵カウンターを使って「章ごとに 1 から」にする。
+ * 本全体で通しにしたいときは tools/make-note-offsets.mjs を使う。
+ * ------------------------------------------------------------------- */
+:root {
+  --vs-footnote--call-content: counter(footnote);
+  --vs-footnote--marker-content: counter(footnote) '. ';
+}
+
+/* ---------------------------------------------------------------------
+ * 7. 柱 (ランニングヘッダー)
+ *
+ * string-set はファイル境界でリセットされるので、ファイルごとに設定し直す。
+ * 1ファイル1章ならこれは自動的に成立する。
+ *
+ * 柱を position: running() で組んで、その中に前方参照を置いてはいけない。
+ * 最初のページでしか解決されず、2ページ目以降は ?? のまま残る (Core 2.45.0)。
+ * ------------------------------------------------------------------- */
+body.chapter  section.level1 > h1 { string-set: runhead content(text); }
+body.appendix section.level1 > h1 { string-set: runhead content(text); }
+@page chap:left  { --vs-page--mbox-content-top-left:  '第' counter(chapter) '章　' string(runhead); }
+@page chap:right { --vs-page--mbox-content-top-right: string(runhead); }
+@page app:left   { --vs-page--mbox-content-top-left:  '付録' counter(appendix, upper-alpha) '　' string(runhead); }
+@page app:right  { --vs-page--mbox-content-top-right: string(runhead); }
+/* 章の扉ページには柱を出さない */
+@page chap:nth(1 of chap), app:nth(1 of app) {
+  --vs-page--mbox-content-top-left: none;
+  --vs-page--mbox-content-top-right: none;
+}
+
+/* ---------------------------------------------------------------------
+ * 8. 目次
+ *
+ * 目次はビルド時に Node 側で組まれ、見出しの innerHTML を写す。
+ * CSS カウンターで付けた番号は DOM に無いので入らない。
+ * 目次側で target-counter() を使い、本文と同じカウンターを参照し直す。
+ * これで本文の番号と目次の番号が必ず一致する。
+ * ------------------------------------------------------------------- */
+[role='doc-toc'] ol  { list-style: none; padding-inline-start: 1.5em; }
+[role='doc-toc'] > ol { padding-inline-start: 0; }
+[role='doc-toc'] li  { break-inside: avoid; }
+[role='doc-toc'] a   { display: block; text-decoration: none; color: inherit; }
+/* ページ番号は theme-base の toc.css も書いている。向こうのセレクタは
+   :is(#toc, [role='doc-toc']) で、:is() は最も詳細な引数 (#toc) の詳細度を取るため
+   id 相当になる。属性セレクタだけで書くと負けるので、同じ前置きを付けて並ぶ。 */
+:is(#toc, [role='doc-toc']) li > a::after {
+  content: leader('.') target-counter(attr(href url), bodypage);
+}
+/* 前付けの項目だけは前付け用のページ番号を出す */
+:is(#toc, [role='doc-toc']) li[data-kind='front'] > a::after {
+  content: leader('.') target-counter(attr(href url), frontpage, lower-roman);
+}
+[role='doc-toc'] li[data-kind='part'] > a::before {
+  content: '第' target-counter(attr(href url), part, upper-roman) '部　';
+}
+[role='doc-toc'] li[data-kind='chapter'][data-section-level='1'] > a::before {
+  content: '第' target-counter(attr(href url), chapter) '章　';
+}
+[role='doc-toc'] li[data-kind='chapter'][data-section-level='2'] > a::before {
+  content: target-counter(attr(href url), chapter) '.'
+           target-counters(attr(href url), vs-counter-sections, '.') '　';
+}
+[role='doc-toc'] li[data-kind='appendix'][data-section-level='1'] > a::before {
+  content: '付録' target-counter(attr(href url), appendix, upper-alpha) '　';
+}
+[role='doc-toc'] li[data-kind='appendix'][data-section-level='2'] > a::before {
+  content: target-counter(attr(href url), appendix, upper-alpha) '.'
+           target-counters(attr(href url), vs-counter-sections, '.') '　';
+}
+
+/* ---------------------------------------------------------------------
+ * 9. 図一覧・参考文献
+ *
+ * 通し番号の難易度は「番号の源を1ファイルに集約できるか」で決まる。
+ * 文献は一覧が1ファイルに収まるので素直に通る。
+ * 図一覧は自動生成の仕組みが無いので、アンカーを手で並べて target-* で埋める。
+ * ------------------------------------------------------------------- */
+.lof { list-style: none; padding: 0; }
+.lof a { display: block; text-decoration: none; color: inherit; }
+.lof a::before {
+  content: '図 ' target-counter(attr(href url), chapter) '.'
+                 target-counter(attr(href url), vs-counter-fig) '　'
+                 target-text(attr(href url));
+}
+.lof a[href*='-app-']::before {
+  content: '図 ' target-counter(attr(href url), appendix, upper-alpha) '.'
+                 target-counter(attr(href url), vs-counter-fig) '　'
+                 target-text(attr(href url));
+}
+.lof a::after { content: leader('.') target-counter(attr(href url), bodypage); }
+
+/* 文献番号も theme-base の vs-counter-cite に寄せる。
+   theme-base が ol.cite-items > li で増やしているので、この目印を使う限り
+   自前のカウンターは要らない。 */
+ol.cite-items { list-style: none; padding-inline-start: 3em; }
+ol.cite-items > li { position: relative; margin-block: 0.3rem; }
+ol.cite-items > li::before {
+  content: '[' counter(vs-counter-cite) ']';
+  position: absolute; inset-inline-start: -3em;
+}
+
+/* ---------------------------------------------------------------------
+ * 10. 体裁の細部
+ * ------------------------------------------------------------------- */
+body.part section.level1 > h1 {
+  font-size: 2em; text-align: center; margin-block-start: 30%;
+}
+body.chapter section.level1 > h1, body.appendix section.level1 > h1 {
+  font-size: 1.7em; margin-block: 0 2rem;
+}
+h2 { font-size: 1.25em; margin-block: 1.8rem 0.6rem; break-after: avoid; }
+h3 { font-size: 1.08em; margin-block: 1.4rem 0.4rem; break-after: avoid; }
+.thm, .lem, .prop, .cor, .dfn, .rem {
+  margin-block: 0.9rem;
+  padding-inline-start: 0.9rem;
+  border-inline-start: 2px solid #999;
+  break-inside: avoid;
+}
+.eq { display: flex; justify-content: space-between; margin-block: 0.6rem; }
+figure { margin-inline: 0; break-inside: avoid; }
+figure img { max-width: 100%; }
+figcaption { font-size: 0.9em; }
+table { border-collapse: collapse; font-size: 0.9em; }
+th, td { border: 1px solid #999; padding: 0.2rem 0.6rem; }
+code { font-family: 'Noto Sans Mono CJK JP', monospace; font-size: 0.92em; }
+pre { font-size: 0.85em; padding: 0.5rem 0.7rem; background: #f4f4f4; break-inside: avoid; }

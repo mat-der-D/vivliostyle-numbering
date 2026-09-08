@@ -1,0 +1,18 @@
+{
+  "name": "vivliostyle-numbering",
+  "description": "Vivliostyle で番号を振る",
+  "author": "mat-der-D",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "vivliostyle build",
+    "postbuild": "npm run check",
+    "check": "node tools/check-refs.mjs .vivliostyle --pdf book.pdf --ignore-file tools/check-refs.ignore",
+    "preview": "vivliostyle preview",
+    "build:continuous-notes": "node tools/make-note-offsets.mjs && vivliostyle build -c vivliostyle.config.continuous-notes.js -o book-continuous-notes.pdf"
+  },
+  "dependencies": {
+    "@vivliostyle/cli": "11.2.0"
+  }
+}

@@ -1,0 +1,3 @@
+/* 表紙だけの上書き。book.css のあとに読み込む。 */
+@page cover { margin: 0; }
+[role='doc-cover'] { display: block; width: 100%; height: 100vh; object-fit: cover; }

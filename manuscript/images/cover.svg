@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1480 2100" width="1480" height="2100" font-family="'Noto Serif CJK JP', serif">
+  <rect width="1480" height="2100" fill="#f7f5f1"/>
+  <g stroke="#2b2b2b" stroke-width="3" fill="none">
+    <rect x="90" y="90" width="1300" height="1920"/>
+  </g>
+  <!-- 章番号がファイル境界を越えて続く様子 -->
+  <g stroke="#2b2b2b" stroke-width="2" fill="none" opacity="0.35">
+    <rect x="240" y="1180" width="300" height="360"/>
+    <rect x="590" y="1180" width="300" height="360"/>
+    <rect x="940" y="1180" width="300" height="360"/>
+  </g>
+  <line x1="240" y1="1120" x2="1240" y2="1120" stroke="#2b2b2b" stroke-width="3"/>
+  <g fill="#2b2b2b">
+    <circle cx="390" cy="1120" r="9"/><circle cx="740" cy="1120" r="9"/><circle cx="1090" cy="1120" r="9"/>
+  </g>
+  <g font-size="34" fill="#2b2b2b" text-anchor="middle" opacity="0.75">
+    <text x="390" y="1090">1</text><text x="740" y="1090">2</text><text x="1090" y="1090">3</text>
+  </g>
+  <g font-size="30" fill="#2b2b2b" text-anchor="middle" opacity="0.45">
+    <text x="390" y="1330">1.1</text><text x="390" y="1390">1.2</text>
+    <text x="740" y="1330">2.1</text><text x="740" y="1390">2.2</text>
+    <text x="1090" y="1330">3.1</text><text x="1090" y="1390">3.2</text>
+  </g>
+  <text x="740" y="560" font-size="112" fill="#1a1a1a" text-anchor="middle">Vivliostyle で</text>
+  <text x="740" y="700" font-size="112" fill="#1a1a1a" text-anchor="middle">番号を振る</text>
+  <text x="740" y="820" font-size="40" fill="#555" text-anchor="middle">カウンター・相互参照・目次・ファイル分割</text>
+  <text x="740" y="1860" font-size="34" fill="#555" text-anchor="middle">mat-der-D</text>
+</svg>

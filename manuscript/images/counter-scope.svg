@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 300" width="640" height="300" font-family="'Noto Sans CJK JP', sans-serif">
+  <rect width="640" height="300" fill="#fff"/>
+  <!-- ファイル -->
+  <g stroke="#333" fill="none">
+    <rect x="20"  y="70" width="180" height="170" rx="4"/>
+    <rect x="230" y="70" width="180" height="170" rx="4"/>
+    <rect x="440" y="70" width="180" height="170" rx="4"/>
+  </g>
+  <g font-size="13" fill="#333" text-anchor="middle">
+    <text x="110" y="90">11-ch-counters.md</text>
+    <text x="320" y="90">12-ch-xref.md</text>
+    <text x="530" y="90">21-ch-splitting.md</text>
+  </g>
+  <!-- 章より下（文書カウンター）: 各ファイルの中で閉じる -->
+  <g fill="#e8e8e8" stroke="#999">
+    <rect x="36"  y="150" width="148" height="72" rx="3"/>
+    <rect x="246" y="150" width="148" height="72" rx="3"/>
+    <rect x="456" y="150" width="148" height="72" rx="3"/>
+  </g>
+  <g font-size="12" fill="#333" text-anchor="middle">
+    <text x="110" y="172">節・定理・図・式</text>
+    <text x="110" y="192">1.1  1.2  1.3 …</text>
+    <text x="320" y="172">節・定理・図・式</text>
+    <text x="320" y="192">2.1  2.2  2.3 …</text>
+    <text x="530" y="172">節・定理・図・式</text>
+    <text x="530" y="192">5.1  5.2  5.3 …</text>
+  </g>
+  <g font-size="11" fill="#666" text-anchor="middle">
+    <text x="110" y="212">ファイル境界でリセット</text>
+    <text x="320" y="212">ファイル境界でリセット</text>
+    <text x="530" y="212">ファイル境界でリセット</text>
+  </g>
+  <!-- 章より上（ページ制御カウンター）: 境界を越える -->
+  <line x1="20" y1="120" x2="620" y2="120" stroke="#333" stroke-width="2"/>
+  <g fill="#333">
+    <circle cx="110" cy="120" r="5"/><circle cx="320" cy="120" r="5"/><circle cx="530" cy="120" r="5"/>
+  </g>
+  <g font-size="12" fill="#333" text-anchor="middle">
+    <text x="110" y="112">第1章</text><text x="320" y="112">第2章</text><text x="530" y="112">第5章</text>
+  </g>
+  <text x="320" y="36" font-size="14" fill="#333" text-anchor="middle">章より上 ＝ ページ制御カウンター（ファイル境界を越えて連続）</text>
+  <text x="320" y="276" font-size="14" fill="#333" text-anchor="middle">章より下 ＝ 文書カウンター（ファイル境界でリセット）</text>
+</svg>
