@@ -264,13 +264,16 @@ a.ref-cite::before { content: '[' target-counter(attr(href url), vs-counter-cite
  * 6.5. 脚注
  *
  * 脚注番号は「どのカウンターで採番するか」でリセットの単位が変わる。
- *   自前のカウンター  (theme-base の既定)      → ページごとに戻る
+ *   自前のカウンター (counter-reset を書かない) → ページごとに戻る
+ *   theme-base の既定 (vs-counter-footnote)     → ファイルごとに戻る
  *   内蔵の footnote カウンター                  → ファイルごとに戻る
  *   内蔵 + ビルド時のオフセット注入             → 本全体で通し
  * float: footnote の要素は本文の流れから外れるので、そこに置いた
- * counter-increment は本文側の文書カウンターを進めない。それが1つ目の理由。
+ * counter-increment は本文側の文書カウンターを進めない。
  *
  * ここでは1ファイル1章なので、内蔵カウンターを使って「章ごとに 1 から」にする。
+ * オフセットを注入する前処理が内蔵カウンターを前提にしているので、theme-base の
+ * 既定ではなくこちらに揃える。
  * 本全体で通しにしたいときは tools/make-note-offsets.mjs を使う。
  * ------------------------------------------------------------------- */
 :root {
@@ -283,9 +286,6 @@ a.ref-cite::before { content: '[' target-counter(attr(href url), vs-counter-cite
  *
  * string-set はファイル境界でリセットされるので、ファイルごとに設定し直す。
  * 1ファイル1章ならこれは自動的に成立する。
- *
- * 柱を position: running() で組んで、その中に前方参照を置いてはいけない。
- * 最初のページでしか解決されず、2ページ目以降は ?? のまま残る (Core 2.45.0)。
  * ------------------------------------------------------------------- */
 body.chapter  section.level1 > h1 { string-set: runhead content(text); }
 body.appendix section.level1 > h1 { string-set: runhead content(text); }

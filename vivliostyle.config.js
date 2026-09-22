@@ -27,8 +27,8 @@ export default defineConfig({
   author: 'mat-der-D',
   language: 'ja',
 
-  // 判型はここで指定する。テーマ側の既定 (--vs-page--size) は auto で、
-  // 何も書かないと Letter で出る。
+  // 判型はここで指定する。テーマ側の --vs-page--size には既定値がなく、
+  // 何も書かないと size は auto になって A5 にならない。
   size: 'A5',
 
   // 体裁は theme-base、番号・参照・目次・柱の規約は book.css に置く。層を混在させない。

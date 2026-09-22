@@ -59,12 +59,6 @@ body.chapter section.level1 > h1 { string-set: runhead content(text); }
 
 このページの左上（または右上）に出ているのがそれです。
 
-<div class="rem">
-<p>柱を <code>position: running()</code> で組み、その中に<strong>前方参照</strong>を
-置いてはいけません。最初のページでしか解決されず、2ページ目以降は
-<code>??</code> のまま残ります。柱は <code>string-set</code> で組みます。</p>
-</div>
-
 ## 部でのグループ化 {#sec-splitting-part}
 
 部は章と同じくページ制御カウンターで採番します。**部をまたいで通し番号にするか、部ごとに振り直すかは1行の違いです。**
