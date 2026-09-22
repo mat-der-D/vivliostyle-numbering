@@ -39,7 +39,7 @@ Vivliostyle の壊れ方は、エラーではなく**沈黙**です。どれも�
 CLI が生成する表紙 HTML には、エントリに `theme` を書かないとスタイルシートが1枚も入りません。しかもエントリの `theme` は全体の `theme` を**置き換える**ので、全部並べ直す必要があります。
 
 ```js
-{ rel: 'cover', theme: ['@vivliostyle/theme-base', './theme/book.css', './theme/cover.css'] }
+{ rel: 'cover', theme: ['@vivliostyle/theme-base@2.1.1', './theme/book.css', './theme/cover.css'] }
 ```
 
 ## ファイル境界の白紙ページ {#sec-pitfalls-blank}

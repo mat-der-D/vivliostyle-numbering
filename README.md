@@ -82,6 +82,22 @@ npm run build:continuous-notes   # gen/ を作って組み直す → book-contin
 
 本文に書いてある挙動は、この組み合わせで実際にビルドして確かめたものです。
 
+## バージョンとタグ
+
+タグ名は、そのコミットが前提にしている Vivliostyle CLI と `@vivliostyle/theme-base` のバージョンです。
+同じ組み合わせのまま本文を直したときは、末尾に `-r2`、`-r3` と付けます。
+Core と Chrome のバージョンはタグのメッセージに書いてあります。
+
+| タグ | Vivliostyle CLI | `@vivliostyle/theme-base` |
+| --- | --- | --- |
+| `cli-11.2.0_theme-base-2.1.1` | 11.2.0 | 2.1.1 |
+
+theme-base 3.0.0 は 2.x と互換性がありません。2.x で組みたいときは、上のタグをチェックアウトしてください。
+
+```bash
+git checkout cli-11.2.0_theme-base-2.1.1
+```
+
 ## ライセンス
 
 [MIT](LICENSE)。図版は本リポジトリで作成した SVG です。
