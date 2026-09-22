@@ -120,9 +120,9 @@ theme-base を使っているときは、`body { counter-reset: … }` を直接
 
 ```css
 @page front { counter-increment: frontpage;
-              --vs-page--mbox-content-bottom-center: counter(frontpage, lower-roman); }
+              --vs-page--mbox-bottom-center-content: counter(frontpage, lower-roman); }
 @page part, chap, app, back, colo { counter-increment: bodypage;
-              --vs-page--mbox-content-bottom-center: counter(bodypage); }
+              --vs-page--mbox-bottom-center-content: counter(bodypage); }
 ```
 
 この本のまえがきが `i`、本文が `1` から始まっているのがそれです。前付けと本文はそもそも別の系列なので、実装としてもそう書くほうが素直です。

@@ -32,9 +32,9 @@ export default defineConfig({
   size: 'A5',
 
   // 体裁は theme-base、番号・参照・目次・柱の規約は book.css に置く。層を混在させない。
-  // バージョンを書かないと、ビルドのたびに npm の最新版が入る。
-  // theme-base 3.0.0 は 2.x と互換性がなく、この本の柱・節番号・余白が崩れる。
-  theme: ['@vivliostyle/theme-base@2.1.1', './theme/book.css'],
+  // theme-base は book.css の先頭で @import している。バージョンは package.json の
+  // dependencies で固定する。
+  theme: ['./theme/book.css'],
 
   browser: 'chrome@153.0.8010.36',
   image: 'ghcr.io/vivliostyle/cli:11.3.3',
@@ -57,7 +57,7 @@ export default defineConfig({
     // 表紙のエントリに theme を書かないと、生成される表紙 HTML に
     // スタイルシートが1枚も入らず、そのページだけ判型と余白が変わる。
     // エントリの theme は全体の theme を「置き換える」ので、全部並べ直す。
-    { rel: 'cover', theme: ['@vivliostyle/theme-base@2.1.1', './theme/book.css', './theme/cover.css'] },
+    { rel: 'cover', theme: ['./theme/book.css', './theme/cover.css'] },
     '00-preface.md',
     { rel: 'contents', title: '目次' },
     '05-part-theme.md',

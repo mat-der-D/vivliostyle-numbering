@@ -9,17 +9,17 @@ title: theme-base はどう作られているか
 
 ## 値はすべて変数に出してある {#sec-design-vars}
 
-`--vs-*` の変数が **343個定義され、479箇所から参照**されています。セレクタと宣言はテーマが持ち、**著者は値だけを差し替える**という作りです。
+`--vs-*` の変数は、パッケージに入っている `css-variables.json` に一覧があり、**1772個**あります（3.0.0）。セレクタと宣言はテーマが持ち、**著者は値だけを差し替える**という作りです。
 
-`content` まで変数になっているのが特徴で、ページまわりだけで16箇所あります。
+`content` まで変数になっているのが特徴で、マージンボックスの `content` だけで30個あります。16個のボックスそれぞれの変数に、見開きの内側・外側で指定する14個が加わります。
 
 ```css
 /* theme-base の書き方 */
-@page { @bottom-center { content: var(--vs-page--mbox-content-bottom-center); } }
+@page { @bottom-center { content: var(--vs-page--mbox-bottom-center-content, ''); } }
 ```
 ```css
 /* 著者はこう書く。セレクタを書かないので、詳細度の勝負にならない */
-:root { --vs-page--mbox-content-bottom-center: counter(page); }
+:root { --vs-page--mbox-bottom-center-content: counter(page); }
 ```
 
 ## 規則は一度だけ書き、何に効かせるかを変数で決める {#sec-design-switch}
@@ -40,32 +40,35 @@ title: theme-base はどう作られているか
 
 ## 文書の役割を名前付きページに変える {#sec-design-role}
 
-VFM の frontmatter に書いた `class:` は `<html>` と `<body>` の両方に付きます。theme-base はそれを名前付きページに変換します。表紙と目次は CLI が作るので class を付けられず、役割属性で拾っています。
+VFM の frontmatter に書いた `class:` は `<html>` と `<body>` の両方に付きます。theme-base はそれを名前付きページに変換します。表紙と目次は CLI が作るので class を付けられず、役割属性で拾っています。どれも `html` と `body` の両方に当たるように書いてあります。
 
 ```css
-html.chapter, body.chapter   { page: chapter-document; }
-body:has([role='doc-toc'])   { page: toc-document; }
-body:has([role='doc-cover']) { page: cover-document; }
+:is(html, body):is(.chapter, [role='doc-chapter']) { page: chapter-document; }
+:is(html, body):has([role='doc-toc'])              { page: toc-document; }
+:is(html, body):has([role='doc-cover'])            { page: cover-document; }
 ```
 
 `preface` `appendix` `colophon` `bibliography` など、DPUB-ARIA の役割名も同じ扱いです。
 
 ## 番号は数えるところまで。出すのは著者 {#sec-design-count}
 
-theme-base はカウンターを15個持っていますが、**出し方まで決めているのは一部だけ**です。
+theme-base はカウンターを22個持っていますが、**出し方まで決めているのは一部だけ**です。
 
 | カウンター | 数える | 既定で出る |
 | --- | --- | --- |
 | `vs-counter-doc` / `-part` / `-chapter` | ○ | **×** |
+| `vs-counter-appendix` | ○ | ○（appendix モジュール） |
 | `vs-counter-sections` / `-sec-h1`〜`-h6` | ○ | × |
 | `vs-counter-toc` | ○ | × |
-| `vs-counter-fig` / `-tbl` / `-cite` | ○ | ○ |
-| `vs-counter-footnote` | ○ | ○ |
+| `vs-counter-fig` / `-tbl` / `-lst` / `-eq` / `-thm` / `-cite` | ○ | ○（それぞれのモジュール） |
+| `vs-counter-footnote` / `-endnote` / `-endnote-call` / `-sidenote` | ○ | ○ |
 
 <div class="thm" id="thm-theme-counts">
 <p>部と章の番号は、theme-base が数えてはいるが<strong>どこにも出していない</strong>。
 <code>counter(vs-counter-chapter)</code> と書いた箇所は theme-base の中に1つも無い。</p>
 </div>
+
+図や定理の番号の前に章番号を付けるための変数（`--vs-crossref-marker-counter-prefix`）もありますが、既定では空で、何を入れるかは著者が決めます。
 
 出すのは著者の仕事です。この本がどう出しているかは[](11-ch-counters.md#ch-counters){.ref-ch}で扱います。
 
@@ -79,20 +82,25 @@ body          { counter-reset: … var(--vs-document-root-counter-reset,); }
 @page :first  { counter-reset: … var(--vs-first-page-counter-reset,); }
 ```
 
-`meta-properties.css` に明記があります。
-
-```
-Caution: Don't set value directly otherwise all other counters will be ignored.
-  OK: :root { --vs-document-root-counter-reset: foo bar; }
-  NG: :root { counter-reset: foo bar; }
-```
+`body` の `counter-reset` は、図・表・文献・節などの機能ごとのリセット（`--vs-figure--root-counter-reset` など）と、著者用の `--vs-document-root-counter-reset` を並べたものです。直接書くと、この全部が消えます。
 
 ## 読み込む範囲を選べる {#sec-design-parts}
 
-| 入口 | 中身 |
-| --- | --- |
-| `theme-basic.css` | 基本のみ（meta-properties, reset, basic） |
-| `theme-all.css`（既定） | 基本 + partial 8本 |
-| `css/partial/*.css` | 個別に `@import` できる |
+パッケージは、入口とモジュールに分かれています。入口は必ず読み込み、モジュールは使うものだけを選んで並べます。
 
-partial は crossref・endnote・footnote・footnote-external-link・page・section・toc・utility-classes。**番号まわりを全部自分で書くなら `theme-basic.css` を選ぶ**という手もあります。この本は `theme-all.css`（既定）を使い、番号だけ書き足しています。
+| 読み込むもの | 中身 |
+| --- | --- |
+| `@vivliostyle/theme-base` | 入口。リセット・変数の既定値・HTML 要素の基本スタイル |
+| `@vivliostyle/theme-base/page` など | 機能ごとのモジュール。1つずつ `@import` する |
+
+モジュールは page・section・toc・footnote・endnote・sidenote・figure・table・listing・equation・theorem・appendix・citation・math・prism の15個です（ほかに、外部リンクを脚注にする `footnote/external-links` があります）。
+
+この本は page・section・toc・footnote・figure・citation の6つを読み込んでいます。**部・章・付録・定理・式の番号は自分で振っているので、appendix・theorem・equation は読み込みません。**読み込むと、同じ番号を2か所で持つことになります（[](07-ch-theme-control.md#sec-control-defer){.ref-sec}）。
+
+```css
+/* theme/book.css の先頭 */
+@import '@vivliostyle/theme-base';
+@import '@vivliostyle/theme-base/page';
+@import '@vivliostyle/theme-base/section';
+/* … */
+```

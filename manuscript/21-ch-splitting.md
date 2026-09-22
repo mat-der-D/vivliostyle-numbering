@@ -54,7 +54,7 @@ C-4 には良い面もあります。**ファイルごとに判型を変える�
 
 ```css
 body.chapter section.level1 > h1 { string-set: runhead content(text); }
-@page chap:left { --vs-page--mbox-content-top-left: '第' counter(chapter) '章　' string(runhead); }
+@page chap:left { --vs-page--mbox-top-left-content: '第' counter(chapter) '章　' string(runhead); }
 ```
 
 このページの左上（または右上）に出ているのがそれです。

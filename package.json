@@ -13,6 +13,7 @@
     "build:continuous-notes": "node tools/make-note-offsets.mjs && vivliostyle build -c vivliostyle.config.continuous-notes.js -o book-continuous-notes.pdf"
   },
   "dependencies": {
-    "@vivliostyle/cli": "11.3.3"
+    "@vivliostyle/cli": "11.3.3",
+    "@vivliostyle/theme-base": "3.0.0"
   }
 }

@@ -19,6 +19,18 @@
  * 一致させる ＝ 1ファイル1章 が、この実装の設計判断そのものである。
  * ===================================================================== */
 
+/* theme-base は、入口 (リセット・変数の既定値・HTML 要素の基本スタイル) と
+   機能ごとのモジュールに分かれている。入口に続けて、使うモジュールだけを並べる。
+   番号を自分で振るもの (部・章・付録・定理・式) のモジュールは読み込まない。
+   @import はほかの規則より前に書く。 */
+@import '@vivliostyle/theme-base';
+@import '@vivliostyle/theme-base/page';
+@import '@vivliostyle/theme-base/section';
+@import '@vivliostyle/theme-base/toc';
+@import '@vivliostyle/theme-base/footnote';
+@import '@vivliostyle/theme-base/figure';
+@import '@vivliostyle/theme-base/citation';
+
 /* ---------------------------------------------------------------------
  * 1. 判型とページ
  * ------------------------------------------------------------------- */
@@ -28,8 +40,8 @@
   --vs-line-height: 1.75;
   --vs-page--margin-top: 20mm;
   --vs-page--margin-bottom: 22mm;
-  --vs-page--margin-inner: 22mm;
-  --vs-page--margin-outer: 18mm;
+  --vs-page--margin-inside: 22mm;
+  --vs-page--margin-outside: 18mm;
 }
 
 /* 文書の種別ごとに名前付きページを与える。
@@ -37,7 +49,7 @@
 
    theme-base も同じ手を使っていて、chapter / part / preface / appendix /
    colophon といった class を自分の名前付きページ (chapter-document など) に
-   割り当てている。しかもセレクタが `html.chapter, body.chapter` なので、
+   割り当てている。しかもセレクタが `:is(html, body):is(.chapter, …)` なので、
    こちらが body だけを上書きしても <html> 側の指定が残って競合する。
    自分の名前を使うなら html と body の両方を上書きすること。 */
 html.preface,    body.preface    { page: front; }
@@ -46,28 +58,29 @@ html.chapter,    body.chapter    { page: chap; }
 html.appendix,   body.appendix   { page: app; }
 html.backmatter, body.backmatter { page: back; }
 html.colophon,   body.colophon   { page: colo; }
-/* 表紙と目次は CLI が生成するので class を付けられない。役割属性で拾う。 */
-body:has([role='doc-toc'])   { page: front; }
-body:has([role='doc-cover']) { page: cover; }
+/* 表紙と目次は CLI が生成するので class を付けられない。役割属性で拾う。
+   theme-base はここも html と body の両方に書いている。 */
+html:has([role='doc-toc']),   body:has([role='doc-toc'])   { page: front; }
+html:has([role='doc-cover']), body:has([role='doc-cover']) { page: cover; }
 
 /* ---------------------------------------------------------------------
  * 2. ページ番号 — 前付けと本文で別の系列にする
  *
  * page カウンターを振り直す方法もあるが、振り直しを置いた文書が1ページしか
- * ないと次の文書に引き継がれない (Core 2.45.0)。
+ * ないと次の文書に引き継がれない (Core 2.45.1 で確認)。
  * 系列ごとに別のページ制御カウンターを立てれば、この罠に引っかからない。
  * 前付けと本文はそもそも別の系列なので、こう書くほうが素直でもある。
  * ------------------------------------------------------------------- */
 @page front {
   counter-increment: frontpage;
-  --vs-page--mbox-content-bottom-center: counter(frontpage, lower-roman);
+  --vs-page--mbox-bottom-center-content: counter(frontpage, lower-roman);
 }
 @page part, chap, app, back, colo {
   counter-increment: bodypage;
-  --vs-page--mbox-content-bottom-center: counter(bodypage);
+  --vs-page--mbox-bottom-center-content: counter(bodypage);
 }
 @page cover, colo {
-  --vs-page--mbox-content-bottom-center: none;
+  --vs-page--mbox-bottom-center-content: none;
 }
 
 /* ---------------------------------------------------------------------
@@ -93,8 +106,7 @@ body.appendix section.level1 > h1::before { margin-inline-end: 1ch; }
  * 自前のカウンターを立てずにそちらへ寄せる。同じ番号を二重に持つと、
  * どちらが効いているのか分からなくなる。
  *
- * theme-base がやっているのは、要するに次の2行である。テーマを使わないなら
- * 自分でこう書く。
+ * テーマを使わないなら、たとえば次の2行で書ける。
  *
  *   section:has(> h2:first-child) { counter-increment: sec; }
  *   section > :is(h1,h2,h3,h4,h5,h6):first-child + * { counter-reset: sec; }
@@ -102,6 +114,7 @@ body.appendix section.level1 > h1::before { margin-inline-end: 1ch; }
  * 要点は、リセットを見出しではなく「見出しの次の要素」に置くこと。
  * 見出しの位置ではまだ親の階層なので、見出しには親までの番号が出る。
  * 見出し自身にリセットを書くと 1.1.0 のように余分な 0 が出る。
+ * theme-base は同じ考えで、リセットを「最初の子の節」に置いている。
  *
  * ここで上書きするのは値だけで、増やす・リセットする規則には触らない。
  * marker-display の既定は none なので、出したいなら明示的に戻す。
@@ -118,8 +131,8 @@ body.appendix section.level1 > h1::before { margin-inline-end: 1ch; }
    (有効範囲は、その要素と子孫と、後ろの兄弟とその子孫)。
 
    theme-base は入れ物を2つ作る。
-     1. body のリセット                         → #1  (basic.css)
-     2. section > h1:first-child + * のリセット → #2  ← 見出しの次の要素 (section.css)
+     1. body のリセット                    → #1  (theme-base の入口)
+     2. h1 の節の中の、最初の h2 の節のリセット → #2  (section モジュール)
    h2 の節が増やすのは内側の #2 なので、h2 の位置で counters() は #1.#2 の2桁になる。
    #1 は「このファイルに h1 がいくつあるか」の数えで、1ファイル1章なら常に 1。
    そこへ章番号を自分で足すと 1.1.1 と3桁になる。これが余分な階層。
@@ -135,7 +148,7 @@ body.appendix section.level1 > h1::before { margin-inline-end: 1ch; }
    none は counter-increment / counter-reset の初期値で、
    「何も増やさない」「新しいインスタンスを作らない」を意味する。
 
-   片方ずつ外して実測した結果:
+   片方ずつ外して実測した結果 (theme-base 2.1.1 と 3.0.0 で同じ):
      両方を上書き        1.1     入れ物は #1 だけ。h2 の節が #1 を 1,2,… と増やす
      reset だけ上書き    1.2     1桁になるが、h1 の節が #1 を 1 消費するので h2 が 2 から
      increment だけ      1.0.1   #2 が残るので2桁のまま。#1 は増えないので 0
@@ -144,7 +157,7 @@ body.appendix section.level1 > h1::before { margin-inline-end: 1ch; }
    桁を減らすのが reset の上書き、その1桁を h1 に使わせないのが increment の上書きで、
    役割が違うので両方が必要である。 */
 section:has(> h1:first-child) { counter-increment: none; }
-section > h1:first-child + *  { counter-reset: none; }
+section:has(> h1:first-child) > section:has(> h2:first-child):first-of-type { counter-reset: none; }
 body.chapter {
   --vs-section--marker-content: counter(chapter) '.' counters(vs-counter-sections, '.');
 }
@@ -175,7 +188,7 @@ body.appendix {
 .thm, .lem, .prop, .cor, .dfn { counter-increment: thmlike; }
 .nonum { counter-increment: none; }
 /* 図の番号は theme-base の vs-counter-fig に寄せる。theme-base は
-   figure:is(.fig, :has(> img/picture)) で増やしていて、VFM が出す
+   figure:is(.fig, :has(> :is(img, picture))) で増やしていて、VFM が出す
    <figure><img><figcaption> がそのまま当たる。自前で立てると二重になる。
 
    増やしているのは <figure> なので、その子孫である <figcaption> の位置では
@@ -203,9 +216,12 @@ body.chapter .thm[data-name]::before {
   content: '定理 ' counter(chapter) '.' counter(thmlike) ' (' attr(data-name) ')';
 }
 
-body.chapter  figcaption::before { content: '図 ' counter(chapter) '.' counter(vs-counter-fig); }
-body.appendix figcaption::before { content: '図 ' counter(appendix, upper-alpha) '.' counter(vs-counter-fig); }
-figcaption::before { margin-inline-end: 1ch; font-weight: bold; }
+/* キャプションの番号も theme-base が figcaption::before に変数で出している。
+   セレクタを書くと詳細度の勝負になるので、変数を差し替える。 */
+:root { --vs-figure--marker-margin-inline: 0 1ch; }
+body.chapter  { --vs-figure--marker-content: '図 ' counter(chapter) '.' counter(vs-counter-fig); }
+body.appendix { --vs-figure--marker-content: '図 ' counter(appendix, upper-alpha) '.' counter(vs-counter-fig); }
+figcaption::before { font-weight: bold; }
 
 body.chapter .eq::after { content: '(' counter(chapter) '.' counter(eq) ')'; }
 
@@ -273,14 +289,18 @@ a.ref-cite::before { content: '[' target-counter(attr(href url), vs-counter-cite
  * ------------------------------------------------------------------- */
 body.chapter  section.level1 > h1 { string-set: runhead content(text); }
 body.appendix section.level1 > h1 { string-set: runhead content(text); }
-@page chap:left  { --vs-page--mbox-content-top-left:  '第' counter(chapter) '章　' string(runhead); }
-@page chap:right { --vs-page--mbox-content-top-right: string(runhead); }
-@page app:left   { --vs-page--mbox-content-top-left:  '付録' counter(appendix, upper-alpha) '　' string(runhead); }
-@page app:right  { --vs-page--mbox-content-top-right: string(runhead); }
+/* theme-base はマージンボックスを既定で全部 content: '' にしている。上中央の
+   ボックスがあると左右のボックスは等幅に割られ、柱が半分の幅で折り返す。
+   上中央を none にして、柱のボックスに幅を渡す。 */
+@page chap, app { --vs-page--mbox-top-center-content: none; }
+@page chap:left  { --vs-page--mbox-top-left-content:  '第' counter(chapter) '章　' string(runhead); }
+@page chap:right { --vs-page--mbox-top-right-content: string(runhead); }
+@page app:left   { --vs-page--mbox-top-left-content:  '付録' counter(appendix, upper-alpha) '　' string(runhead); }
+@page app:right  { --vs-page--mbox-top-right-content: string(runhead); }
 /* 章の扉ページには柱を出さない */
 @page chap:nth(1 of chap), app:nth(1 of app) {
-  --vs-page--mbox-content-top-left: none;
-  --vs-page--mbox-content-top-right: none;
+  --vs-page--mbox-top-left-content: none;
+  --vs-page--mbox-top-right-content: none;
 }
 
 /* ---------------------------------------------------------------------
@@ -295,7 +315,7 @@ body.appendix section.level1 > h1 { string-set: runhead content(text); }
 [role='doc-toc'] > ol { padding-inline-start: 0; }
 [role='doc-toc'] li  { break-inside: avoid; }
 [role='doc-toc'] a   { display: block; text-decoration: none; color: inherit; }
-/* ページ番号は theme-base の toc.css も書いている。向こうのセレクタは
+/* ページ番号は theme-base の toc モジュールも書いている。向こうのセレクタは
    :is(#toc, [role='doc-toc']) で、:is() は最も詳細な引数 (#toc) の詳細度を取るため
    id 相当になる。属性セレクタだけで書くと負けるので、同じ前置きを付けて並ぶ。 */
 :is(#toc, [role='doc-toc']) li > a::after {

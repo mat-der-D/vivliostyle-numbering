@@ -25,6 +25,12 @@ body.chapter  { --vs-section--marker-content: counter(chapter) '.' counters(vs-c
 body.appendix { --vs-section--marker-content: counter(appendix, upper-alpha) '.' counters(vs-counter-sections, '.'); }
 ```
 
+`none` を渡せば、その部分を丸ごと消せます。theme-base はマージンボックスに既定で `content: ''` を入れているので、何も書かなくても上中央のボックスが作られます。上中央のボックスがあると左右のボックスは同じ幅に割られ、長い柱が途中で折り返します。
+
+```css
+@page chap { --vs-page--mbox-top-center-content: none; }
+```
+
 ## 型2 — 変数に足す {#sec-control-add}
 
 `counter-reset` 系。**直接書くとテーマ側の指定が消えます。**
@@ -53,9 +59,12 @@ a.ref-sec::before { content: target-counters(attr(href url), vs-counter-sections
 寄せた結果、一部だけ都合が悪いとき。`none` は初期値なので「何もしない」に戻ります。
 
 ```css
-section:has(> h1:first-child) { counter-increment: none; }  /* h1 の節は数えない */
-section > h1:first-child + *  { counter-reset: none; }      /* h1 の直後で桁を作らない */
-:root { --vs-section--marker-content: none; }               /* 既定では番号を出さない */
+/* h1 の節は数えない */
+section:has(> h1:first-child) { counter-increment: none; }
+/* 最初の h2 の節で桁を作らない */
+section:has(> h1:first-child) > section:has(> h2:first-child):first-of-type { counter-reset: none; }
+/* 既定では番号を出さない */
+:root { --vs-section--marker-content: none; }
 ```
 
 ## 型5 — 同じセレクタで上書きする {#sec-control-override}
@@ -111,6 +120,8 @@ html.chapter, body.chapter { page: chap; }
 | 節番号の表示 | `display: none` で出ない | 型1 |
 | 前付け・後付けの見出し | 裸の `0` が出る | 型1 |
 | 図・文献の番号 | 二重に持っていた | 型3 |
+| 図のキャプションの番号 | 番号と本文のあいだの余白が消える | 型1 |
+| 柱 | 左右のボックスが等幅に割られて折り返す | 型1 |
 | 目次のページ番号 | `:is(#toc,…)` に負ける | 型5 |
 | 文書カウンターのリセット | `body` に直接書くと全部消える | 型2 |
 | 付録のカウンター | `@page` の `counter-increment` が競合 | 流儀を統一 |

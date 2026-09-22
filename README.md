@@ -18,7 +18,7 @@ npm run preview    # ブラウザで確認する
 
 | 見るもの | 中身 |
 | --- | --- |
-| `theme/book.css` | **実装の本体。**節番号が本の章立てと対応している |
+| `theme/book.css` | **実装の本体。**節番号が本の章立てと対応している。theme-base もここで `@import` している |
 | `vivliostyle.config.js` | `entry` の並び、VFM のオプション、目次の加工 |
 | `tools/` | ビルドに付ける検査と前処理 |
 | `book.pdf`（ビルドすると出る） | 出来上がり |
@@ -75,10 +75,10 @@ npm run build:continuous-notes   # gen/ を作って組み直す → book-contin
 
 | | |
 | --- | --- |
-| Vivliostyle CLI | 11.2.0 |
-| Vivliostyle Core | 2.45.0 |
-| `@vivliostyle/theme-base` | 2.1.1 |
-| Chrome | 152.0.7977.54 |
+| Vivliostyle CLI | 11.3.3 |
+| Vivliostyle Core | 2.45.1 |
+| `@vivliostyle/theme-base` | 3.0.0 |
+| Chrome | 153.0.8010.36 |
 
 本文に書いてある挙動は、この組み合わせで実際にビルドして確かめたものです。
 
@@ -90,9 +90,10 @@ Core と Chrome のバージョンはタグのメッセージに書いてあり�
 
 | タグ | Vivliostyle CLI | `@vivliostyle/theme-base` |
 | --- | --- | --- |
+| `cli-11.3.3_theme-base-3.0.0` | 11.3.3 | 3.0.0 |
 | `cli-11.2.0_theme-base-2.1.1` | 11.2.0 | 2.1.1 |
 
-theme-base 3.0.0 は 2.x と互換性がありません。2.x で組みたいときは、上のタグをチェックアウトしてください。
+theme-base 3.0.0 は 2.x と互換性がありません。2.x で組みたいときは、`cli-11.2.0_theme-base-2.1.1` をチェックアウトしてください。
 
 ```bash
 git checkout cli-11.2.0_theme-base-2.1.1

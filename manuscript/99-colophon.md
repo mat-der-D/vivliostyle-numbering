@@ -13,7 +13,7 @@ title: 奥付
 
 | | |
 | --- | --- |
-| Vivliostyle CLI | 11.2.0 |
-| Vivliostyle Core | 2.45.0 |
-| `@vivliostyle/theme-base` | 2.1.1 |
-| Chrome | 152.0.7977.54 |
+| Vivliostyle CLI | 11.3.3 |
+| Vivliostyle Core | 2.45.1 |
+| `@vivliostyle/theme-base` | 3.0.0 |
+| Chrome | 153.0.8010.36 |
