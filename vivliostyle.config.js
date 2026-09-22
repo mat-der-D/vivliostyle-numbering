@@ -36,8 +36,8 @@ export default defineConfig({
   // theme-base 3.0.0 は 2.x と互換性がなく、この本の柱・節番号・余白が崩れる。
   theme: ['@vivliostyle/theme-base@2.1.1', './theme/book.css'],
 
-  browser: 'chrome@152.0.7977.54',
-  image: 'ghcr.io/vivliostyle/cli:11.2.0',
+  browser: 'chrome@153.0.8010.36',
+  image: 'ghcr.io/vivliostyle/cli:11.3.3',
   output: 'book.pdf',
   entryContext: 'manuscript',
 
