@@ -82,11 +82,11 @@ body          { counter-reset: … var(--vs-document-root-counter-reset,); }
 @page :first  { counter-reset: … var(--vs-first-page-counter-reset,); }
 ```
 
-`body` の `counter-reset` は、図・表・文献・節などの機能ごとのリセット（`--vs-figure--root-counter-reset` など）と、著者用の `--vs-document-root-counter-reset` を並べたものです。直接書くと、この全部が消えます。
+`body` の `counter-reset` は、図・表・文献・節などの機能ごとのリセット（`--vs-figure--root-counter-reset` など）と、著者用の `--vs-document-root-counter-reset` を並べたものです。直接書くと、これら全部が消えます。
 
 ## 読み込む範囲を選べる {#sec-design-parts}
 
-パッケージは、入口とモジュールに分かれています。入口は必ず読み込み、モジュールは使うものだけを選んで並べます。
+パッケージは、入口とモジュールに分かれています。入口は必ず読み込んで、モジュールは使うものだけを選んで並べます。
 
 | 読み込むもの | 中身 |
 | --- | --- |
